@@ -1,0 +1,12 @@
+pandas
+numpy
+requests
+html5lib
+lxml
+yfinance
+matplotlib
+plotly
+scipy
+scikit-learn
+trendln
+mpl_finance
