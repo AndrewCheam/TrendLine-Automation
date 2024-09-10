@@ -1,10 +1,9 @@
 import pandas as pd
 import numpy as np
-from utils.modules import AssetLevels, TrendLine
-import itertools
+from utils.modules import Asset, TrendLine
 
 
-def simulate_gbm(S0, mu, sigma, T, dt, N):
+def simulate_gbm_ohlc(S0, mu, sigma, T, dt, N, start_date='2023-01-01'):
     """
     Simulate price series using the Geometric Brownian Motion (GBM) model.
 
@@ -20,54 +19,53 @@ def simulate_gbm(S0, mu, sigma, T, dt, N):
     np.ndarray: Simulated price series.
     """
     np.random.seed(42)  # Fixing seed for reproducibility
-    timesteps = int(T / dt)
-    time = np.linspace(0, T, timesteps)
+    num_steps = int(T / dt)
 
-    # Generate random noise for each simulation
-    W = np.random.standard_normal((timesteps, N))
+    # Generate the date range starting from the specified start date
+    dates = pd.date_range(start=start_date, periods=num_steps,
+                          freq='B')  # 'B' for business days
 
-    # Calculate the GBM process
-    S = np.zeros_like(W)
-    S[0] = S0
-    for t in range(1, timesteps):
-        S[t] = S[t-1] * np.exp((mu - 0.5 * sigma**2) *
-                               dt + sigma * np.sqrt(dt) * W[t])
+    # Initialize matrices for open, close, high, and low prices
+    open_prices = np.zeros((N, num_steps))
+    open_prices[:, 0] = S0
+    close_prices = np.zeros((N, num_steps + 1))
+    high_prices = np.zeros((N, num_steps))
+    low_prices = np.zeros((N, num_steps))
 
-    return S, time
+    # Simulate close prices using GBM
+    close_prices[:, 0] = S0
+    for i in range(1, num_steps + 1):
+        dt_sqrt = np.sqrt(dt)
+        z = np.random.standard_normal(N)  # Random shocks
+        close_prices[:, i] = close_prices[:, i-1] * \
+            np.exp((mu - 0.5 * sigma**2) * dt + sigma * dt_sqrt * z)
 
+    # Simulate open prices as a random jump from previous day's close
+    for i in range(1, num_steps):
+        # Small Gaussian noise for overnight jumps
+        overnight_jump = np.random.normal(1, 0.001, N)
+        open_prices[:, i] = close_prices[:, i-1] * overnight_jump
 
-def generate_fractal_trend_lines(historical_data: pd.DataFrame, num_points=4, log_transform=False):
-    """
-    Automatically generate a list of trend lines for the given price series (sorted by power)
+    # Simulate high and low prices as deviations from open and close
+    for i in range(num_steps):
+        # Simulate daily range as a percentage of the day's prices
+        daily_volatility = np.random.normal(0, 0.005, N)
+        high_prices[:, i] = np.maximum(
+            open_prices[:, i], close_prices[:, i+1]) * (1 + np.abs(daily_volatility))
+        low_prices[:, i] = np.minimum(
+            open_prices[:, i], close_prices[:, i+1]) * (1 - np.abs(daily_volatility))
 
-    Args:
-    historical data (pd.DataFrame): The price series with all information
-    num_points (int): Number of points to consider in a trend line
-    log_transform (bool): Whether to apply log transformation to the price series.
+    # Create a DataFrame with the Open, High, Low, and Close prices for each simulated day
+    data = []
+    for i in range(N):
+        df = pd.DataFrame({
+            'Open': open_prices[i],
+            'High': high_prices[i],
+            'Low': low_prices[i],
+            # skip initial close price since it's used to start the simulation
+            'Close': close_prices[i, 1:],
+            'Date': dates
+        })
+        data.append(df)
 
-    Returns:
-    tuple: A tuple containing the supports, resistances, and sorted lists of upper and lower trend lines.
-    """
-    if log_transform:
-        historical_data['Open'] = np.log(historical_data['Open'])
-
-    # Identify support and resistance points
-    asset = AssetLevels(historical_data)
-    supports, resistances = asset.getLevels()
-
-    # Fit linear regressions to supports and resistances
-    support_lines = []
-    resistance_lines = []
-    for comb in itertools.combinations(supports, num_points):
-        comb = np.array(comb)
-        tl = TrendLine(comb)
-        support_lines.append(tl)
-
-    for comb in itertools.combinations(resistances, num_points):
-        comb = np.array(comb)
-        tl = TrendLine(comb)
-        resistance_lines.append(tl)
-    support_lines.sort(key=lambda x: x.power, reverse=True)
-    resistance_lines.sort(key=lambda x: x.power, reverse=True)
-
-    return supports, resistances, support_lines, resistance_lines
+    return data  # Return a list of DataFrames (one per simulated path)

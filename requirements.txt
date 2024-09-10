@@ -10,3 +10,4 @@ scipy
 scikit-learn
 trendln
 mpl_finance
+statsmodels
