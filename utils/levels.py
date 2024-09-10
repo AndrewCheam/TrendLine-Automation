@@ -1,4 +1,7 @@
+from scipy.signal import argrelextrema
+from statsmodels.nonparametric.kernel_regression import KernelReg
 import numpy as np
+import pandas as pd
 
 
 def isSupport(df, i):
@@ -48,3 +51,31 @@ def getFractalLevels(df):
                 resistances.append((i, l))  # Add resistance to list
                 levels.append(l)  # Track all levels
     return supports, resistances
+
+
+def get_smoothed_curve(close_df, bandwidth):
+    #  Use Kernel Regression to create a fitted curve
+    kernel_regression = KernelReg(
+        [close_df.values], [close_df.index], var_type='c', bw=bandwidth)
+    regression_result = kernel_regression.fit([close_df.index])
+    # Get smoothed close prices
+    smoothed_close_df = pd.Series(
+        data=regression_result[0], index=close_df.index)
+    return smoothed_close_df
+
+
+def find_smoothed_extrema(df):
+    #  Calculate local mins and max
+    close_df = df['Close']
+    smoothed_close_df = get_smoothed_curve(close_df, bandwidth='cv_ls')
+    smoothed_local_max = argrelextrema(
+        smoothed_close_df.values, np.greater, order=5)[0]
+    smoothed_local_min = argrelextrema(
+        smoothed_close_df.values, np.less, order=5)[0]
+
+    smoothed_local_max = np.concatenate(
+        (smoothed_local_max.reshape(-1, 1), close_df[smoothed_local_max].values.reshape(-1, 1)), axis=1)
+    smoothed_local_min = np.concatenate(
+        (smoothed_local_min.reshape(-1, 1), close_df[smoothed_local_min].values.reshape(-1, 1)), axis=1)
+
+    return smoothed_local_max, smoothed_local_min
