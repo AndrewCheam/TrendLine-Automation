@@ -7,7 +7,10 @@ def check_trend_line(support: bool, pivot: int, slope: float, y: np.array):
     # return negative val if invalid
 
     # Find the intercept of the line going through pivot point with given slope
-    intercept = -slope * pivot + y[pivot]
+    if pivot < 0 or pivot >= len(y):
+        raise ValueError(f"Pivot {pivot} is out of range for the series.")
+
+    intercept = -slope * pivot + y.iloc[pivot]
     line_vals = slope * np.arange(len(y)) + intercept
 
     diffs = line_vals - y
@@ -77,7 +80,7 @@ def optimize_slope(support: bool, pivot: int, init_slope: float, y: np.array):
             get_derivative = True  # Recompute derivative
 
     # Optimize done, return best slope and intercept
-    return (best_slope, -best_slope * pivot + y[pivot])
+    return (best_slope, -best_slope * pivot + y.iloc[pivot])
 
 
 def fit_trendlines_single(data: np.array):

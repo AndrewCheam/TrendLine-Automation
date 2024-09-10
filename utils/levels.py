@@ -74,8 +74,8 @@ def find_smoothed_extrema(df):
         smoothed_close_df.values, np.less, order=5)[0]
 
     smoothed_local_max = np.concatenate(
-        (smoothed_local_max.reshape(-1, 1), close_df[smoothed_local_max].values.reshape(-1, 1)), axis=1)
+        (smoothed_local_max.reshape(-1, 1), close_df.iloc[smoothed_local_max].values.reshape(-1, 1)), axis=1)
     smoothed_local_min = np.concatenate(
-        (smoothed_local_min.reshape(-1, 1), close_df[smoothed_local_min].values.reshape(-1, 1)), axis=1)
+        (smoothed_local_min.reshape(-1, 1), close_df.iloc[smoothed_local_min].values.reshape(-1, 1)), axis=1)
 
     return smoothed_local_max, smoothed_local_min
