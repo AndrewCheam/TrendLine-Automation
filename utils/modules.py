@@ -122,17 +122,6 @@ class Asset:
                      label="Resistance Line", linestyle='--')
 
     def generate_fragment_trend_lines(self, num_points=3):
-        """
-        Automatically generate trend lines for the given price series, sorted by power.
-
-        Args:
-        - historical_data: pd.DataFrame of the asset data.
-        - num_points: Number of points to fit the trend line.
-        - log_transform: Whether to log transform the data.
-
-        Returns:
-        - Tuple: supports, resistances, sorted support lines, and sorted resistance lines.
-        """
 
         df_copy = self.df.copy()
         df_copy['Date'] = df_copy['Date'].apply(mpl_dates.date2num)

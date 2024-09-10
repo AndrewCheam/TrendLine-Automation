@@ -4,24 +4,9 @@ from utils.modules import Asset, TrendLine
 
 
 def simulate_gbm_ohlc(S0, mu, sigma, T, dt, N, start_date='2023-01-01'):
-    """
-    Simulate price series using the Geometric Brownian Motion (GBM) model.
-
-    Args:
-    S0 (float): Initial asset price.
-    mu (float): Drift (expected return).
-    sigma (float): Volatility.
-    T (float): Total time in years.
-    dt (float): Time step size.
-    N (int): Number of simulations.
-
-    Returns:
-    np.ndarray: Simulated price series.
-    """
-    np.random.seed(42)  # Fixing seed for reproducibility
+    np.random.seed(42)
     num_steps = int(T / dt)
 
-    # Generate the date range starting from the specified start date
     dates = pd.date_range(start=start_date, periods=num_steps,
                           freq='B')  # 'B' for business days
 
